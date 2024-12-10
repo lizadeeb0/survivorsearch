@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Survivor Search</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    #search-container {
+      margin: 20px auto;
+      width: 80%;
+      max-width: 600px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    #results {
+      margin-top: 20px;
+    }
+    .result {
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: #f9f9f9;
+    }
+    .result .episode {
+      font-weight: bold;
+    }
+    .result .timestamp {
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>Survivor Search</h1>
+  <div id="search-container">
+    <input type="text" id="search-bar" placeholder="Search Survivor episodes..." oninput="search()">
+  </div>
+  <div id="results"></div>
+
+  <script>
+    async function search() {
+      const query = document.getElementById('search-bar').value;
+      const resultsContainer = document.getElementById('results');
+      resultsContainer.innerHTML = '';
+
+      if (!query.trim()) return;
+
+      try {
+        const response = await fetch('http://localhost:9200/survivor/_search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: {
+              match: {
+                transcript: query
+              }
+            }
+          }),
+        });
+
+        const data = await response.json();
+        const hits = data.hits.hits;
+
+        if (hits.length === 0) {
+          resultsContainer.innerHTML = '<p>No results found.</p>';
+        } else {
+          hits.forEach(hit => {
+            const result = document.createElement('div');
+            result.className = 'result';
+            result.innerHTML = `
+              <div class="episode">Season ${hit._source.season}, Episode ${hit._source.episode}</div>
+              <div class="timestamp">Timestamp: ${hit._source.timestamp}</div>
+              <div class="snippet">${hit._source.transcript}</div>
+            `;
+            resultsContainer.appendChild(result);
+          });
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        resultsContainer.innerHTML = '<p>Error fetching results.</p>';
+      }
+    }
+  </script>
+</body>
+</html>
